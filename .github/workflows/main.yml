@@ -1,0 +1,44 @@
+name: Build Electron App for Specific Tag
+
+on:
+  push:
+    tags:
+      - 'v*'  # 监听所有以 'v' 开头的标签
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # 获取所有历史记录，以便访问所有标签
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'  # 选择合适的 Node.js 版本
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Build the app
+        run: |
+          yarn electron:build --win nsis:ia32  # Windows 32位打包
+          yarn electron:build --linux deb:armv7l  # Linux ARM 打包
+          yarn electron:build --macos dir:arm64  # macOS ARM 打包
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist_electron/**/*  # 根据实际路径调整
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
